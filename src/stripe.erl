@@ -2,6 +2,10 @@
 %% ex: ft=erlang ts=2 sw=2 et
 -module(stripe).
 
+-behaviour(application).
+
+-export([start/2, stop/1]).
+
 -export([token_create/10, token_create_bank/3]).
 -export([customer_create/3, customer_get/1, customer_update/3]).
 -export([charge_customer/4, charge_card/4]).
@@ -19,6 +23,12 @@
 
 -define(VSN_BIN, <<"0.8.0">>).
 -define(VSN_STR, binary_to_list(?VSN_BIN)).
+
+start(_Type, _Args) ->
+  ok.
+
+stop(_State) ->
+  ok.
 
 % Stripe limit for paginated requests, change
 % this number if stripe changes it in the future
