@@ -3,6 +3,7 @@
   {description, "stripe - erlang stripe.com API access"},
   {vsn, "0.8.0"},
   {modules, []},
+  {registered, []},
   {applications, [
                   kernel,
                   stdlib,
