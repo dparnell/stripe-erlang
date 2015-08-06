@@ -303,7 +303,7 @@ request_run(URL, Method, Fields) ->
               delete -> {URL, Headers};
                    _ -> {URL, Headers, Type, Body}
             end,
-  Requested = httpc:request(Method, Request, [], []),
+  Requested = httpc:request(Method, Request, [], [{body_format, binary}]),
   resolve(Requested).
 
 %% Much like request_run/3 except that a tuple is returned with the
@@ -317,7 +317,7 @@ request_run_all(URL) ->
              {"User-Agent", "Stripe/v1 ErlangBindings/" ++ ?VSN_STR},
              {"Authorization", auth_key()}],
   Request = {URL, Headers},
-  Requested = httpc:request(get, Request, [], []),
+  Requested = httpc:request(get, Request, [], [{body_format, binary}]),
 
   case resolve(Requested) of
     {error, _} = Error ->
