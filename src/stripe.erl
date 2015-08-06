@@ -318,7 +318,7 @@ request_run_all(URL) ->
 
 %% Simple function that checks if the body has more results in a paginated query
 has_more({ok, {{_HTTPVer, _StatusCode, _Reason}, _Headers, Body}}) ->
-  DecodedResult = mochijson2:decode(Body, [{format, proplist}]),
+  DecodedResult = jsx:decode(Body),
   proplists:get_value(<<"has_more">>, DecodedResult).
 
 %%%--------------------------------------------------------------------
@@ -352,7 +352,7 @@ json_to_record(Json) when is_list(Json) andalso is_tuple(hd(Json)) ->
   json_to_record(proplists:get_value(<<"object">>, Json), Json);
 
 json_to_record(Body) when is_list(Body) orelse is_binary(Body) ->
-  DecodedResult = mochijson2:decode(Body, [{format, proplist}]),
+  DecodedResult = jsx:decode(Body),
   json_to_record(DecodedResult).
 
 % Yes, these are verbose and dumb because we don't have runtime record/object

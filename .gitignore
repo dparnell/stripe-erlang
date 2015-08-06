@@ -1,6 +1,10 @@
-deps/
-.eunit/
-ebin/
-tags
-priv/currencies.json
-.rebar/
+.eunit
+deps
+ebin
+*~
+.DS_Store
+*.dump
+*#
+.#*
+_rel
+.erlang.mk.*
