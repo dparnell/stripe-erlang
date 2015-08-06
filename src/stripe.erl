@@ -543,7 +543,7 @@ json_to_error(ErrCode, Body) ->
 % Let's use a common error object/record instead of breaking out per-type
 % errors.  We can match on error types easily.
 json_to_error(ErrCode, ErrCodeMeaning, Body) ->
-  PreDecoded = mochijson2:decode(Body, [{format, proplist}]),
+  PreDecoded = jsx:decode(Body),
   DecodedResult = proplists:get_value(<<"error">>, PreDecoded),
   #stripe_error{type    = check_to_atom(?V(type)),
                 code    = check_to_atom(?V(code)),
@@ -559,7 +559,7 @@ ua_json() ->
   Props = [{<<"bindings_version">>, ?VSN_BIN},
            {<<"lang">>, <<"erlang">>},
            {<<"publisher">>, <<"mattsta">>}],
-  binary_to_list(iolist_to_binary(mochijson2:encode(Props))).
+  binary_to_list(iolist_to_binary(jsx:encode(Props))).
 
 auth_key() ->
   Token = env(auth_token),
@@ -582,7 +582,7 @@ env(What, Default) ->
 gen_args([]) -> "";
 gen_args(Fields) when is_list(Fields) andalso is_tuple(hd(Fields)) ->
   OnlyWithValues = [{K, V} || {K, V} <- Fields, V =/= [] andalso V =/= <<>>],
-  mochiweb_util:urlencode(OnlyWithValues).
+  stripe_util:urlencode(OnlyWithValues).
 
 gen_url(Action) when is_atom(Action) ->
   gen_url(atom_to_list(Action));
