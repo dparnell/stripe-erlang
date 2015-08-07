@@ -14,7 +14,7 @@
 -export([customer/1, event/1, invoiceitem/1]).
 -export([recipient_create/6, recipient_update/6]).
 -export([transfer_create/5, transfer_cancel/1]).
--export([invoiceitem_create/4]).
+-export([invoiceitem_create/4,invoice_create/3]).
 -export([gen_paginated_url/1, gen_paginated_url/2,
          gen_paginated_url/3, gen_paginated_url/4]).
 -export([get_all_customers/0, get_num_customers/1]).
@@ -30,9 +30,9 @@ start(_Type, _Args) ->
 stop(_State) ->
   ok.
 
-% Stripe limit for paginated requests, change
-% this number if stripe changes it in the future
-% See: https://stripe.com/docs/api#pagination
+%% Stripe limit for paginated requests, change
+%% this number if stripe changes it in the future
+%% See: https://stripe.com/docs/api#pagination
 -define(STRIPE_LIST_LIMIT, 100).
 %%%--------------------------------------------------------------------
 %%% Charging
@@ -46,7 +46,7 @@ charge_card(Amount, Currency, Card, Desc) ->
   charge(Amount, Currency, {card, Card}, Desc).
 
 -spec charge(price(), currency(),
-            {customer, customer_id()} | {card, token_id()}, desc()) -> result.
+             {customer, customer_id()} | {card, token_id()}, desc()) -> result.
 charge(Amount, Currency, CustomerOrCard, Desc) when
     Amount > 50 andalso is_tuple(CustomerOrCard) ->
   Fields = [{amount, Amount},
@@ -172,6 +172,20 @@ customer(CustomerId) ->
   request_customer(CustomerId).
 
 %%%--------------------------------------------------------------------
+%%% Invoice Support
+%%%--------------------------------------------------------------------
+
+                                                %invoiceitem(InvoiceItemId) ->
+                                                %  request_invoiceitem(InvoiceItemId).
+
+invoice_create(Customer, CCStatementDescription, Description) ->
+  Fields = [{customer, Customer},
+            {statement_descriptor, CCStatementDescription},
+            {description, Description}],
+  request_invoice_create(Fields).
+
+
+%%%--------------------------------------------------------------------
 %%% InvoiceItem Support
 %%%--------------------------------------------------------------------
 
@@ -179,21 +193,21 @@ invoiceitem(InvoiceItemId) ->
   request_invoiceitem(InvoiceItemId).
 
 invoiceitem_create(Customer, Amount, Currency, Description) ->
-    Fields = [{customer, Customer},
-              {amount, Amount},
-              {currency, Currency},
-              {description, Description}],
-    request_invoiceitem_create(Fields).
+  Fields = [{customer, Customer},
+            {amount, Amount},
+            {currency, Currency},
+            {description, Description}],
+  request_invoiceitem_create(Fields).
 
 %%%--------------------------------------------------------------------
 %%% Pagination Support
 %%%--------------------------------------------------------------------
 
 get_all_customers() ->
-    request_all_customers().
+  request_all_customers().
 
 get_num_customers(Count) ->
-    request_num_customers(Count).
+  request_num_customers(Count).
 
 %%%--------------------------------------------------------------------
 %%% request generation and sending
@@ -212,6 +226,9 @@ request_invoiceitem(InvoiceItemId) ->
 
 request_invoiceitem_create(Fields) ->
   request(invoiceitems, post, Fields).
+
+request_invoice_create(Fields) ->
+  request(invoices, post, Fields).
 
 request_customer_create(Fields) ->
   request(customers, post, Fields).
@@ -246,13 +263,13 @@ request_subscription(update, Customer, Subscription, Fields) ->
 
 request_subscription(unsubscribe, Customer, Fields, _AtEnd = true) ->
   request_run(gen_subscription_url(Customer) ++ "?at_period_end=true",
-    delete, Fields);
+              delete, Fields);
 request_subscription(unsubscribe, Customer, Fields, _AtEnd = false) ->
   request_run(gen_subscription_url(Customer), delete, Fields).
 
 request_subscription(unsubscribe, Customer, Subscription, Fields, _AtEnd = true) ->
   request_run(gen_subscription_url(Customer, Subscription) ++ "?at_period_end=true",
-    delete, Fields);
+              delete, Fields);
 request_subscription(unsubscribe, Customer, Subscription,Fields, _AtEnd = false) ->
   request_run(gen_subscription_url(Customer, Subscription), delete, Fields).
 
@@ -298,10 +315,10 @@ request_run(URL, Method, Fields) ->
   Type = "application/x-www-form-urlencoded",
   Body = gen_args(Fields),
   Request = case Method of
-              % get and delete are body-less http requests
-                 get -> {URL, Headers};
+                                                % get and delete are body-less http requests
+              get -> {URL, Headers};
               delete -> {URL, Headers};
-                   _ -> {URL, Headers, Type, Body}
+              _ -> {URL, Headers, Type, Body}
             end,
   Requested = httpc:request(Method, Request, [], [{body_format, binary}]),
   resolve(Requested).
@@ -342,9 +359,9 @@ resolve({error, Reason}) ->
   {error, Reason}.
 
 -spec resolve_status(pos_integer(), json()) ->
-    #stripe_card{} | #stripe_token{} | #stripe_event{} |
-    #stripe_customer{} | #stripe_error{}.
-% success range conditions stolen from stripe-python
+                        #stripe_card{} | #stripe_token{} | #stripe_event{} |
+                        #stripe_customer{} | #stripe_error{}.
+                                                % success range conditions stolen from stripe-python
 resolve_status(HTTPStatus, SuccessBody) when
     HTTPStatus >= 200 andalso HTTPStatus < 300 ->
   json_to_record(SuccessBody);
@@ -365,12 +382,12 @@ json_to_record(Body) when is_list(Body) orelse is_binary(Body) ->
   DecodedResult = jsx:decode(Body),
   json_to_record(DecodedResult).
 
-% Yes, these are verbose and dumb because we don't have runtime record/object
-% capabilities.  In a way, it's nice being explicit up front.
+                                                % Yes, these are verbose and dumb because we don't have runtime record/object
+                                                % capabilities.  In a way, it's nice being explicit up front.
 -spec json_to_record(stripe_object_name(), proplist()) -> #stripe_list{}.
 json_to_record(<<"list">>, DecodedResult) ->
-    Data = ?V(data),
-    #stripe_list{data = [json_to_record(Object) || Object <- Data]};
+  Data = ?V(data),
+  #stripe_list{data = [json_to_record(Object) || Object <- Data]};
 
 json_to_record(<<"event">>, DecodedResult) ->
   Data = ?V(data),
@@ -413,7 +430,7 @@ json_to_record(<<"customer">>, DecodedResult) ->
                    discount        = json_to_record(<<"discount">>, ?V(discount)),
                    account_balance = ?V(account_balance)};
 
-% We don't have eunit tests for discount decoding yet.  Use at your own risk.
+                                                % We don't have eunit tests for discount decoding yet.  Use at your own risk.
 json_to_record(<<"discount">>, null) -> null;
 json_to_record(<<"discount">>, DecodedResult) ->
   #stripe_discount{coupon   = json_to_record(coupon, ?V(coupon)),
@@ -422,7 +439,7 @@ json_to_record(<<"discount">>, DecodedResult) ->
                    customer = ?V(customer)
                   };
 
-% We don't have eunit tests for coupon decoding yet.  Use at your own risk.
+                                                % We don't have eunit tests for coupon decoding yet.  Use at your own risk.
 json_to_record(<<"coupon">>, null) -> null;
 json_to_record(<<"coupon">>, DecodedResult) ->
   #stripe_coupon{id                 = ?V(id),
@@ -450,6 +467,23 @@ json_to_record(<<"subscription">>, DecodedResult) when is_list(DecodedResult) ->
                        start                = ?V(start),
                        quantity             = ?V(quantity),
                        plan                 = proplist_to_plan(?V(plan))};
+
+json_to_record(<<"invoice">>, DecodedResult) ->
+  #stripe_invoice{id           = ?V(id),
+                  customer     = ?V(customer),
+                  charge     = ?V(charge),
+                  plan       = ?V(plan),
+                  application_fee = ?V(application_fee),
+                  description = ?V(description),
+                  lines    = ?V(lines),
+                  subtotal    = ?V(subtotal),
+                  total     = ?V(total),
+                  paid      = ?V(paid),
+                  starting_balance = ?V(starting_balance),
+                  ending_balance = ?V(ending_balance),
+                  statement_descriptor = ?V(statement_descriptor),
+                  subscription = ?V(subscription),
+                  tax_percent  = ?V(tax_percent)};
 
 json_to_record(<<"invoiceitem">>, DecodedResult) ->
   #stripe_invoiceitem{id           = ?V(id),
@@ -527,7 +561,7 @@ check_to_atom(null) -> null;
 check_to_atom(A) when is_atom(A) -> A;
 check_to_atom(Check) when is_binary(Check) -> binary_to_atom(Check, utf8).
 
-% error range conditions stolen from stripe-python
+                                                % error range conditions stolen from stripe-python
 json_to_error(ErrCode, Body) ->
   ErrCodeMeaning = case ErrCode of
                      400 -> missing_param;
@@ -540,8 +574,8 @@ json_to_error(ErrCode, Body) ->
                    end,
   json_to_error(ErrCode, ErrCodeMeaning, Body).
 
-% Let's use a common error object/record instead of breaking out per-type
-% errors.  We can match on error types easily.
+                                                % Let's use a common error object/record instead of breaking out per-type
+                                                % errors.  We can match on error types easily.
 json_to_error(ErrCode, ErrCodeMeaning, Body) ->
   PreDecoded = jsx:decode(Body),
   DecodedResult = proplists:get_value(<<"error">>, PreDecoded),
@@ -569,13 +603,13 @@ auth_key() ->
 env(What) ->
   case env(What, diediedie) of
     diediedie -> throw({<<"You must define this in your app:">>, What});
-         Else -> Else
+    Else -> Else
   end.
 
 env(What, Default) ->
   case application:get_env(stripe, What) of
     {ok, Found} -> Found;
-      undefined -> Default
+    undefined -> Default
   end.
 
 -spec gen_args(proplist()) -> string().
@@ -628,20 +662,20 @@ gen_event_url(EventId) when is_list(EventId) ->
 
 
 gen_paginated_url(Type) ->
-    gen_paginated_url(Type, 10, [], []).
+  gen_paginated_url(Type, 10, [], []).
 gen_paginated_url(Type, Limit) ->
-    gen_paginated_url(Type, Limit, [], []).
+  gen_paginated_url(Type, Limit, [], []).
 gen_paginated_url(Type, Limit, StartingAfter) ->
-    gen_paginated_url(Type, Limit, StartingAfter, []).
+  gen_paginated_url(Type, Limit, StartingAfter, []).
 gen_paginated_url(Type, Limit, StartingAfter, EndingBefore) ->
-    Arguments = gen_args([{"limit", Limit},
-                          {"starting_after", StartingAfter},
-                          {"ending_before", EndingBefore}]),
-    gen_paginated_base_url(Type) ++ Arguments.
+  Arguments = gen_args([{"limit", Limit},
+                        {"starting_after", StartingAfter},
+                        {"ending_before", EndingBefore}]),
+  gen_paginated_base_url(Type) ++ Arguments.
 
 gen_paginated_base_url(charges) ->
-    "https://api.stripe.com/v1/charges?";
+  "https://api.stripe.com/v1/charges?";
 gen_paginated_base_url(customers) ->
-    "https://api.stripe.com/v1/customers?";
+  "https://api.stripe.com/v1/customers?";
 gen_paginated_base_url(invoices) ->
-    "https://api.stripe.com/v1/invoices?".
+  "https://api.stripe.com/v1/invoices?".

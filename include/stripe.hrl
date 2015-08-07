@@ -3,7 +3,7 @@
 %%%--------------------------------------------------------------------
 %%% Types
 %%%--------------------------------------------------------------------
-% General Types
+%% General Types
 -type proplist()     :: [{term(), term()}].  % predefined in newer releases
 -type amount()       :: pos_integer().  % any amount of money
 -type price()        :: 50..99999999.  % valid charge prices. $0.50 to $1M-0.01
@@ -176,10 +176,10 @@
 
 -type recipient_type() :: individual | corporation.
 
-% Endpoints
--type action() :: charges | customers | tokens.
+%% Endpoints
+-type action() :: charges | customers | invoices | tokens.
 
-% Error Types
+%% Error Types
 -type payment_error() :: invalid_number | incorrect_number |
                          invalid_expiry_month | invalid_expiry_year |
                          invalid_cvc | expired_card | invalid_amount |
@@ -242,7 +242,7 @@
                         failure_code :: string(),
                         failure_message :: string(),
                         card        :: #stripe_card{}
-                      }).
+                       }).
 
 -record(stripe_token, {id        :: token_id(),
                        used      :: boolean(),
@@ -309,6 +309,22 @@
 
 -type paginated_object() :: #stripe_customer{} | #stripe_charge{}. % | #stripe_invoice{} - not implemented
 -record(stripe_list, {data :: [paginated_object()]}).
+
+-record(stripe_invoice, {id          :: invoice_id(),
+                         customer    :: customer_id(),
+                         charge    :: charge_id(),
+                         plan    :: plan_id(),
+                         application_fee :: binary(),
+                         description :: binary(),
+                         lines   :: binary(),
+                         subtotal    :: amount(),
+                         total       :: amount(),
+                         paid        :: binary(),
+                         starting_balance :: amount(),
+                         ending_balance :: amount(),
+                         statement_descriptor :: binary(),
+                         subscription :: binary(),
+                         tax_percent  :: binary()}).
 
 -record(stripe_invoiceitem, {id          :: invoice_id(),
                              amount      :: amount(),
