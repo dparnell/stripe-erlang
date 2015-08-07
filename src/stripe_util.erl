@@ -2,7 +2,7 @@
 
 %% copied from mochiweb_util
 
--export([urlencode/1]).
+-export([urlencode/1, as_list/1]).
 
 -define(PERCENT, 37).  % $\%
 -define(FULLSTOP, 46). % $\.
@@ -31,6 +31,8 @@ quote_plus(Atom) when is_atom(Atom) ->
     quote_plus(atom_to_list(Atom));
 quote_plus(Int) when is_integer(Int) ->
     quote_plus(integer_to_list(Int));
+quote_plus(Bin) when is_binary(Bin) ->
+    quote_plus(binary_to_list(Bin));
 quote_plus(String) ->
     quote_plus(String, []).
 
@@ -51,3 +53,9 @@ urlencode(Props) ->
                                    [[quote_plus(K), $=, quote_plus(V)] | Acc]
                            end, [], Props),
     lists:flatten(revjoin(RevPairs, $&, [])).
+
+
+as_list(Value) when is_binary(Value) ->
+    binary_to_list(Value);
+as_list(Value) when is_list(Value) ->
+    Value.

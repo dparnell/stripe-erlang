@@ -563,7 +563,7 @@ ua_json() ->
 
 auth_key() ->
   Token = env(auth_token),
-  Auth = base64:encode_to_string(Token ++ ":"),
+  Auth = base64:encode_to_string(stripe_util:as_list(Token) ++ ":"),
   "Basic " ++ Auth.
 
 env(What) ->
