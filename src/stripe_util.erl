@@ -14,7 +14,7 @@
 
 to_url_pairs(Name, Items) ->
     Name2 = as_list(Name),
-    [Name2 ++ "[" ++ as_list(X) ++ "]" || X <- Items].
+    [{Name2 ++ "[" ++ as_list(X) ++ "]", Y} || {X, Y} <- Items].
 
 hexdigit(C) when C < 10 -> $0 + C;
 hexdigit(C) when C < 16 -> $A + (C - 10).
