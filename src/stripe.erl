@@ -14,7 +14,7 @@
 -export([customer/1, event/1, invoiceitem/1]).
 -export([recipient_create/6, recipient_update/6]).
 -export([transfer_create/5, transfer_cancel/1]).
--export([invoiceitem_create/4,invoice_create/3]).
+-export([invoiceitem_create/4, invoiceitem_create/5, invoice_create/3]).
 -export([gen_paginated_url/1, gen_paginated_url/2,
          gen_paginated_url/3, gen_paginated_url/4]).
 -export([get_all_customers/0, get_num_customers/1]).
@@ -175,9 +175,6 @@ customer(CustomerId) ->
 %%% Invoice Support
 %%%--------------------------------------------------------------------
 
-                                                %invoiceitem(InvoiceItemId) ->
-                                                %  request_invoiceitem(InvoiceItemId).
-
 invoice_create(Customer, CCStatementDescription, Description) ->
   Fields = [{customer, Customer},
             {statement_descriptor, CCStatementDescription},
@@ -193,11 +190,15 @@ invoiceitem(InvoiceItemId) ->
   request_invoiceitem(InvoiceItemId).
 
 invoiceitem_create(Customer, Amount, Currency, Description) ->
+  invoiceitem_create(Customer, Amount, Currency, Description, []).
+
+invoiceitem_create(Customer, Amount, Currency, Description, Metadata) ->
   Fields = [{customer, Customer},
             {amount, Amount},
             {currency, Currency},
             {description, Description}],
-  request_invoiceitem_create(Fields).
+
+  request_invoiceitem_create(Fields ++ stripe_util:to_url_pairs("metadata", Metadata)).
 
 %%%--------------------------------------------------------------------
 %%% Pagination Support
@@ -646,7 +647,7 @@ gen_invoiceitem_url(InvoiceItemId) when is_list(InvoiceItemId) ->
 gen_subscription_url(Customer) when is_binary(Customer) ->
   gen_subscription_url(binary_to_list(Customer));
 gen_subscription_url(Customer) when is_list(Customer) ->
-  "https://api.stripe.com/v1/customers/" ++ Customer ++ "/subscription".
+  "https://api.stripe.com/v1/customers/" ++ Customer ++ "/subscriptions".
 
 gen_subscription_url(Customer, Subscription) when is_binary(Customer) ->
   gen_subscription_url(binary_to_list(Customer), Subscription);

@@ -2,7 +2,7 @@
 
 %% copied from mochiweb_util
 
--export([urlencode/1, as_list/1]).
+-export([urlencode/1, as_list/1, to_url_pairs/2]).
 
 -define(PERCENT, 37).  % $\%
 -define(FULLSTOP, 46). % $\.
@@ -12,8 +12,9 @@
                      (C =:= ?FULLSTOP orelse C =:= $- orelse C =:= $~ orelse
                       C =:= $_))).
 
-
-
+to_url_pairs(Name, Items) ->
+    Name2 = as_list(Name),
+    [Name2 ++ "[" ++ as_list(X) ++ "]" || X <- Items].
 
 hexdigit(C) when C < 10 -> $0 + C;
 hexdigit(C) when C < 16 -> $A + (C - 10).
@@ -55,6 +56,8 @@ urlencode(Props) ->
     lists:flatten(revjoin(RevPairs, $&, [])).
 
 
+as_list(Value) when is_atom(Value) ->
+    atom_to_list(Value);
 as_list(Value) when is_binary(Value) ->
     binary_to_list(Value);
 as_list(Value) when is_list(Value) ->
