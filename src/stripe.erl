@@ -14,7 +14,7 @@
 -export([customer/1, event/1, invoiceitem/1]).
 -export([recipient_create/6, recipient_update/6]).
 -export([transfer_create/5, transfer_cancel/1]).
--export([invoiceitem_create/4, invoiceitem_create/5, invoice_create/3]).
+-export([invoiceitem_create/4, invoiceitem_create/5, invoice_create/3,invoice_pay/1]).
 -export([gen_paginated_url/1, gen_paginated_url/2,
          gen_paginated_url/3, gen_paginated_url/4]).
 -export([get_all_customers/0, get_num_customers/1]).
@@ -181,6 +181,8 @@ invoice_create(Customer, CCStatementDescription, Description) ->
             {description, Description}],
   request_invoice_create(Fields).
 
+invoice_pay(InvoiceId) ->
+	request_run(gen_invoice_url(InvoiceId)++"/pay", post, []).
 
 %%%--------------------------------------------------------------------
 %%% InvoiceItem Support
@@ -661,6 +663,12 @@ gen_event_url(EventId) when is_binary(EventId) ->
 gen_event_url(EventId) when is_list(EventId) ->
   "https://api.stripe.com/v1/events/" ++ EventId.
 
+
+gen_invoice_url(Id) when is_binary(Id) ->
+  gen_invoice_url(binary_to_list(Id));
+gen_invoice_url(Id) when is_list(Id) ->
+  "https://api.stripe.com/v1/invoices/" ++ Id.
+  
 
 gen_paginated_url(Type) ->
   gen_paginated_url(Type, 10, [], []).
