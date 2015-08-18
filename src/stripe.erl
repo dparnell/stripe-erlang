@@ -7,7 +7,7 @@
 -export([start/2, stop/1]).
 
 -export([token_create/10, token_create_bank/3]).
--export([customer_create/3, customer_get/1, customer_update/3]).
+-export([customer_create/3, customer_get/1, customer_update/3, customer_create_card/2]).
 -export([charge_customer/4, charge_card/4]).
 -export([subscription_update/3, subscription_update/5,
          subscription_update/6, subscription_cancel/2, subscription_cancel/3]).
@@ -80,6 +80,17 @@ customer_update(CustomerId, Token, Email) ->
   Fields = [{"card", Token},
             {"email", Email}],
   request_customer_update(CustomerId, Fields).
+  
+
+%%%--------------------------------------------------------------------
+%%% Customer Add Card
+%%%--------------------------------------------------------------------
+-spec customer_create_card(customer_id(), token_id()) -> result.
+customer_create_card(CustomerId, Token) ->
+  Fields = [{source, Token}],
+  Response = request_customer_card_create(CustomerId,Fields),
+  Fields2 = [{"default_source", Response#stripe_card.id}],
+  request_customer_update(CustomerId, Fields2).
 
 %%%--------------------------------------------------------------------
 %%% Token Generation
@@ -238,6 +249,9 @@ request_customer_create(Fields) ->
 
 request_customer_update(CustomerId, Fields) ->
   request_run(gen_customer_url(CustomerId), post, Fields).
+
+request_customer_card_create(CustomerId, Fields) ->
+  request_run(gen_customer_card_url(CustomerId), post, Fields).
 
 request_token_create(Fields) ->
   request(tokens, post, Fields).
@@ -441,7 +455,21 @@ json_to_record(<<"discount">>, DecodedResult) ->
                    'end'    = ?V('end'),
                    customer = ?V(customer)
                   };
-
+				  
+                                                % We don't have eunit tests for discount decoding yet.  Use at your own risk.
+json_to_record(<<"card">>, null) -> null;
+json_to_record(<<"card">>, DecodedResult) ->
+  #stripe_card{id                  = ?V(id),
+  			   name                = ?V(name),
+               last4               = ?V(last4),
+               exp_month           = ?V(exp_month),
+               exp_year            = ?V(exp_year),
+               brand               = ?V(brand),
+               cvc_check           = check_to_atom(?V(cvc_check)),
+               address_line1_check = check_to_atom(?V(address_line1_check)),
+               address_zip_check   = check_to_atom(?V(address_zip_check)),
+               country             = ?V(country)};
+			   
                                                 % We don't have eunit tests for coupon decoding yet.  Use at your own risk.
 json_to_record(<<"coupon">>, null) -> null;
 json_to_record(<<"coupon">>, DecodedResult) ->
@@ -527,7 +555,8 @@ proplist_to_card(null) -> null;
 proplist_to_card(A) when is_binary(A) -> A;
 proplist_to_card(Card) ->
   DecodedResult = Card,
-  #stripe_card{name                = ?V(name),
+  #stripe_card{id                  = ?V(id),
+  			   name                = ?V(name),
                last4               = ?V(last4),
                exp_month           = ?V(exp_month),
                exp_year            = ?V(exp_year),
@@ -650,6 +679,11 @@ gen_subscription_url(Customer) when is_binary(Customer) ->
   gen_subscription_url(binary_to_list(Customer));
 gen_subscription_url(Customer) when is_list(Customer) ->
   "https://api.stripe.com/v1/customers/" ++ Customer ++ "/subscriptions".
+
+gen_customer_card_url(Customer) when is_binary(Customer) ->
+  gen_customer_card_url(binary_to_list(Customer));
+gen_customer_card_url(Customer) when is_list(Customer) ->
+  "https://api.stripe.com/v1/customers/" ++ Customer ++ "/sources".
 
 gen_subscription_url(Customer, Subscription) when is_binary(Customer) ->
   gen_subscription_url(binary_to_list(Customer), Subscription);
