@@ -18,6 +18,8 @@
 -export([gen_paginated_url/1, gen_paginated_url/2,
          gen_paginated_url/3, gen_paginated_url/4]).
 -export([get_all_customers/0, get_num_customers/1]).
+-export([get_customer_invoices/2]).
+
 
 -include("stripe.hrl").
 
@@ -222,6 +224,12 @@ get_all_customers() ->
 
 get_num_customers(Count) ->
   request_num_customers(Count).
+ 
+ 
+get_customer_invoices(CustomerId,Limit) when is_binary(CustomerId) ->
+	request_customer_invoices(binary_to_list(CustomerId),Limit);
+get_customer_invoices(CustomerId,Limit)->
+  request_customer_invoices(CustomerId,Limit).
 
 %%%--------------------------------------------------------------------
 %%% request generation and sending
@@ -298,6 +306,16 @@ request_num_customers(Count) when Count =< ?STRIPE_LIST_LIMIT ->
 request_num_customers(Count) ->
   error_logger:error_msg("Requested ~p customers when ~p is the maximum allowed~n",
                          [Count, ?STRIPE_LIST_LIMIT]).
+						
+request_customer_invoices(CustomerId,Limit) when Limit =< ?STRIPE_LIST_LIMIT ->
+	Url = gen_paginated_url(invoices, Limit) ++ "&customer="++CustomerId,
+	%io:format("Url = ~p~n",[Url]),
+	request_run(Url, get, []);
+request_customer_invoices(_CustomerId,Limit) ->
+  error_logger:error_msg("Requested ~p customer invoices when ~p is the maximum allowed~n",
+                         [Limit, ?STRIPE_LIST_LIMIT]).
+
+
 
 %% Request all items in a pagination supported type
 %% This will continue to call ?STRIPE_LIST_LIMIT items
