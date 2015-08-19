@@ -14,7 +14,7 @@
 -export([customer/1, event/1, invoiceitem/1]).
 -export([recipient_create/6, recipient_update/6]).
 -export([transfer_create/5, transfer_cancel/1]).
--export([invoiceitem_create/4, invoiceitem_create/5, invoice_create/3,invoice_pay/1]).
+-export([invoiceitem_create/4, invoiceitem_create/5, invoice_create/3,invoice_pay/1,invoice_close/1]).
 -export([gen_paginated_url/1, gen_paginated_url/2,
          gen_paginated_url/3, gen_paginated_url/4]).
 -export([get_all_customers/0, get_num_customers/1]).
@@ -196,6 +196,13 @@ invoice_create(Customer, CCStatementDescription, Description) ->
 
 invoice_pay(InvoiceId) ->
 	request_run(gen_invoice_url(InvoiceId)++"/pay", post, []).
+
+invoice_close(InvoiceId) when is_binary(InvoiceId)->
+	invoice_close(binary_to_list(InvoiceId));  
+invoice_close(InvoiceId) ->
+    Fields = [{closed, true}],
+	request_run(gen_invoice_url(InvoiceId), post, Fields).
+
 
 %%%--------------------------------------------------------------------
 %%% InvoiceItem Support
@@ -527,7 +534,10 @@ json_to_record(<<"invoice">>, DecodedResult) ->
                   lines    = ?V(lines),
                   subtotal    = ?V(subtotal),
                   total     = ?V(total),
-                  paid      = ?V(paid),
+				  attempted	 = ?V(attempted),
+				  closed	= ?V(closed),
+				  forgiven	 = ?V(forgiven),
+				  paid      = ?V(paid),
                   starting_balance = ?V(starting_balance),
                   ending_balance = ?V(ending_balance),
                   statement_descriptor = ?V(statement_descriptor),
